@@ -10,17 +10,24 @@ use std::collections::HashMap;
 use glutin_window::GlutinWindow as Window;
 use graphics::color::BLACK;
 use graphics::color::WHITE;
+use graphics::ellipse::circle;
 use model::Pallet;
 use opengl_graphics::{GlGraphics, OpenGL};
 use piston::Size;
 use piston::event_loop::*;
 use piston::input::*;
 use piston::window::WindowSettings;
+use crate::model::Ball;
 
 pub struct App {
     gl: GlGraphics, // OpenGL drawing backend.
     rotation: f64,  // Rotation for the square.
     pallet: Pallet,
+    ball: Ball,
+    resolution: [f64; 2],
+    scale_factor: f64,
+    started: bool,
+    round: u64,
 }
 
 impl App {
@@ -32,7 +39,10 @@ impl App {
 
         let rotation = self.rotation;
         let (x, y) = (self.pallet.x, self.pallet.y);
-        let pallet_rectangle = rectangle::centered_square(x, y, self.pallet.size);
+        let mut pallet_rectangle = rectangle::centered_square(x, y, self.pallet.size);
+        pallet_rectangle[2] = self.pallet.size / 2 as f64;
+
+        let ball_circle = circle(self.ball.x, self.ball.y, self.ball.size);
 
         self.gl.draw(args.viewport(), |c, gl| {
             // Clear the screen.
@@ -41,21 +51,27 @@ impl App {
             //draw pallet
             let transform = c
                 .transform;
-
-            // Draw a box rotating around the middle of the screen.
             rectangle(WHITE, pallet_rectangle, transform, gl);
+            circle_arc(WHITE, 10.0, 0.0, 360.0, ball_circle, transform, gl);
+
         });
     }
 
     fn update(&mut self, args: &UpdateArgs, keyboard_values: &HashMap<Key, f64>) {
-        // Rotate 2 radians per second.
-        if keyboard_values.contains_key(&Key::W) && keyboard_values[&Key::W] > 0.0 {
-            self.rotation += 2.0 * args.dt;
+        if keyboard_values.contains_key(&Key::Space) && keyboard_values[&Key::Space] > 0.0 && self.started == false {
+            self.started = true;
         }
-        if keyboard_values.contains_key(&Key::S) && keyboard_values[&Key::S] > 0.0 {
-            self.rotation -= 2.0 * args.dt;
+        // Update pallet movement
+        if keyboard_values.contains_key(&Key::S) && keyboard_values[&Key::S] > 0.0 && (self.pallet.y + self.pallet.size) < self.resolution[1] {
+            self.pallet.y += self.pallet.speed * self.resolution[1] * args.dt;
+        }
+        if keyboard_values.contains_key(&Key::W) && keyboard_values[&Key::W] > 0.0 && (self.pallet.y - self.pallet.size) > 0.0 {
+            self.pallet.y -= self.pallet.speed * self.resolution[1] * args.dt;
         }
 
+        if self.started {
+            self.ball.x = self.ball.x - (self.ball.speed * self.resolution[0]) * args.dt;
+        }
     }
 }
 
@@ -75,10 +91,6 @@ fn main() {
     let inner_width: u32 = window.ctx.window().inner_size().to_logical(window.ctx.window().scale_factor()).width;
     let inner_height: u32 =  window.ctx.window().inner_size().to_logical(window.ctx.window().scale_factor()).height;
 
-    println!("{}", window.ctx.window().inner_size().width);
-    println!("{}", inner_height);
-    println!("{}", window.ctx.window().scale_factor());
-
     // Create a new game and run it.
     let mut app = App {
         gl: GlGraphics::new(opengl),
@@ -90,10 +102,21 @@ fn main() {
             color: WHITE,
             randomness: 0.0,
             divisions: 5,
+            speed: 1.0,
         },
+        ball: Ball {
+            x: inner_width as f64 / 2.0,
+            y: inner_height as f64 / 2.0,
+            size: 4.0,
+            color: WHITE,
+            speed: 0.5,
+            target: [0.0, inner_height as f64 / 2.0],
+        },
+        resolution: [inner_width as f64, inner_height as f64],
+        scale_factor: window.ctx.window().scale_factor(),
+        started: false,
+        round: 0,
     };
-
-    println!("{}", app.pallet.y);
 
     let mut events = Events::new(EventSettings::new());
     while let Some(e) = events.next(&mut window) {
@@ -123,6 +146,16 @@ fn main() {
 
         if let Some(args) = e.update_args() {
             app.update(&args, &keyboard_values);
+        }
+
+        if let Some(args) = e.resize_args() {
+            println!("{:?}", args.window_size);
+            app.resolution[0] = args.window_size[0] * app.scale_factor;
+            app.resolution[1] = args.window_size[1] * app.scale_factor;
+
+            if (app.pallet.y + app.pallet.size) > app.resolution[1] {
+                app.pallet.y = app.resolution[1] - app.pallet.size;
+            }
         }
     }
 }
