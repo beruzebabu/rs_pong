@@ -17,7 +17,7 @@ use piston::Size;
 use piston::event_loop::*;
 use piston::input::*;
 use piston::window::WindowSettings;
-use crate::model::Ball;
+use crate::model::{Ball, Direction};
 
 pub struct App {
     gl: GlGraphics, // OpenGL drawing backend.
@@ -52,7 +52,7 @@ impl App {
             let transform = c
                 .transform;
             rectangle(WHITE, pallet_rectangle, transform, gl);
-            circle_arc(WHITE, 10.0, 0.0, 360.0, ball_circle, transform, gl);
+            circle_arc(WHITE, self.ball.size, 0.0, 360.0, ball_circle, transform, gl);
 
         });
     }
@@ -70,7 +70,32 @@ impl App {
         }
 
         if self.started {
-            self.ball.x = self.ball.x - (self.ball.speed * self.resolution[0]) * args.dt;
+            if self.ball.bottom_bound() >= self.pallet.top_bound() && self.ball.top_bound() <= self.pallet.bottom_bound() {
+                self.ball.target = [self.resolution[0], self.resolution[1] / 2.0];
+            }
+
+            match self.ball.direction() {
+                Direction::Left => {
+                    self.ball.x = self.ball.x - (self.ball.speed * self.resolution[0]) * args.dt;
+                }
+                Direction::Right => {
+                    self.ball.x = self.ball.x + (self.ball.speed * self.resolution[0]) * args.dt;
+                }
+            }
+
+            //Bounce ball back off of opposite wall
+            if self.ball.right_bound() >= self.resolution[0] {
+                self.ball.target = [0.0, self.resolution[1] / 2.0];
+            }
+
+            //Reset if ball passes the pallet and hits the player side wall
+            if self.ball.left_bound() <= 0.0 {
+                self.round = 0;
+                self.started = false;
+                self.ball.x = self.resolution[0] / 2.0;
+                self.ball.y = self.resolution[1] / 2.0;
+                self.ball.target = [0.0, self.resolution[1] / 2.0];
+            }
         }
     }
 }
