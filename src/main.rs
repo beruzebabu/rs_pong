@@ -8,37 +8,35 @@ extern crate piston;
 use std::collections::HashMap;
 
 use glutin_window::GlutinWindow as Window;
-use graphics::color::BLACK;
 use graphics::color::WHITE;
 use graphics::ellipse::circle;
 use model::Pallet;
+use opengl_graphics::{GlyphCache, TextureSettings};
 use opengl_graphics::{GlGraphics, OpenGL};
-use piston::Size;
 use piston::event_loop::*;
 use piston::input::*;
 use piston::window::WindowSettings;
-use rand::{random, Rng, thread_rng};
+use rand::{Rng, thread_rng};
 use crate::model::{Ball, Direction};
 
-pub struct App {
+pub struct App<'a> {
     gl: GlGraphics, // OpenGL drawing backend.
-    rotation: f64,  // Rotation for the square.
     pallet: Pallet,
     ball: Ball,
     resolution: [f64; 2],
     scale_factor: f64,
     started: bool,
     round: u64,
+    glyphs: GlyphCache<'a>,
 }
 
-impl App {
+impl App<'_> {
     fn render(&mut self, args: &RenderArgs) {
         use graphics::*;
 
         const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
         const WHITE: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 
-        let rotation = self.rotation;
         let (x, y) = (self.pallet.x, self.pallet.y);
         let mut pallet_rectangle = rectangle::centered_square(x, y, self.pallet.size);
         pallet_rectangle[2] = self.pallet.size / 2 as f64;
@@ -49,16 +47,25 @@ impl App {
             // Clear the screen.
             clear(BLACK, gl);
 
-            //draw pallet
+            //draw pallet and ball
             let transform = c
                 .transform;
+
             rectangle(WHITE, pallet_rectangle, transform, gl);
             circle_arc(WHITE, self.ball.size, 0.0, 360.0, ball_circle, transform, gl);
+
+            let transform = c.transform.trans(self.resolution[0] - 96.0, self.resolution[1] - 36.0);
+
+            match text(WHITE, 24, &self.round.to_string(), &mut self.glyphs, transform, gl) {
+                Ok(_) => {},
+                Err(e) => println!("{}", e),
+            }
 
         });
     }
 
     fn update(&mut self, args: &UpdateArgs, keyboard_values: &HashMap<Key, f64>) {
+        // Start game on spacebar press
         if keyboard_values.contains_key(&Key::Space) && keyboard_values[&Key::Space] > 0.0 && self.started == false {
             self.started = true;
         }
@@ -71,38 +78,43 @@ impl App {
         }
 
         if self.started {
-            if self.ball.bottom_bound() >= self.pallet.top_bound() && self.ball.top_bound() <= self.pallet.bottom_bound() && self.pallet.x >= self.ball.x {
+            if self.ball.bottom_bound() >= self.pallet.top_bound() && self.ball.top_bound() <= self.pallet.bottom_bound() && (self.pallet.x - self.pallet.size / 4.0) >= self.ball.x {
                 self.ball.target = [self.resolution[0], self.resolution[1] / 2.0];
-            }
-
-            match self.ball.direction() {
-                Direction::Left => {
-                    self.ball.x = self.ball.x - (self.ball.speed * self.resolution[0]) * args.dt;
-                    let sign = f64::signum(self.ball.y - self.ball.target[1]);
-                    let distance = f64::abs((self.ball.y - self.ball.target[1]));
-                    self.ball.y = self.ball.y - (sign * (self.ball.speed * distance)) * args.dt;
-                }
-                Direction::Right => {
-                    self.ball.x = self.ball.x + (self.ball.speed * self.resolution[0]) * args.dt;
-                }
             }
 
             //Bounce ball back off of opposite wall
             if self.ball.right_bound() >= self.resolution[0] {
                 let random_y = f64::round(thread_rng().gen_range(0.0..self.resolution[1]));
                 self.ball.target = [0.0, random_y];
+                self.round = self.round + 1;
             }
 
             //Reset if ball passes the pallet and hits the player side wall
             if self.ball.left_bound() <= 0.0 {
-                self.round = 0;
-                self.started = false;
-                self.ball.x = self.resolution[0] / 2.0;
-                self.ball.y = self.resolution[1] / 2.0;
-                self.ball.target = [0.0, self.resolution[1] / 2.0];
-                self.pallet.y =  self.resolution[1] / 2.0;
+                self.reset();
+            }
+
+            match self.ball.direction() {
+                Direction::Left => {
+                    self.ball.x = self.ball.x - (self.ball.speed * self.resolution[0]) * args.dt;
+                    let sign = f64::signum(self.ball.y - self.ball.target[1]);
+                    let distance = f64::abs(self.ball.y - self.ball.target[1]);
+                    self.ball.y = self.ball.y - (sign * (self.ball.speed * distance)) * args.dt;
+                }
+                Direction::Right => {
+                    self.ball.x = self.ball.x + (self.ball.speed * self.resolution[0]) * args.dt;
+                }
             }
         }
+    }
+
+    fn reset(&mut self) {
+        self.round = 0;
+        self.started = false;
+        self.ball.x = self.resolution[0] / 2.0;
+        self.ball.y = self.resolution[1] / 2.0;
+        self.ball.target = [0.0, self.resolution[1] / 2.0];
+        self.pallet.y =  self.resolution[1] / 2.0;
     }
 }
 
@@ -122,10 +134,15 @@ fn main() {
     let inner_width: u32 = window.ctx.window().inner_size().to_logical(window.ctx.window().scale_factor()).width;
     let inner_height: u32 =  window.ctx.window().inner_size().to_logical(window.ctx.window().scale_factor()).height;
 
+    let mut path = std::env::current_dir().unwrap();
+    path.push("fonts");
+    path.push("ARCADE_N.TTF");
+    let mut glyphs = GlyphCache::new(".\\fonts\\ARCADE_N.TTF", (), TextureSettings::new()).unwrap();
+
     // Create a new game and run it.
     let mut app = App {
         gl: GlGraphics::new(opengl),
-        rotation: 0.0,
+        glyphs: glyphs,
         pallet: Pallet {
             x: inner_width as f64 / 8.0,
             y: inner_height as f64 / 2.0,
@@ -184,9 +201,15 @@ fn main() {
             app.resolution[0] = args.window_size[0] * app.scale_factor;
             app.resolution[1] = args.window_size[1] * app.scale_factor;
 
-            if (app.pallet.y + app.pallet.size) > app.resolution[1] {
+            app.reset();
+
+            /* if (app.pallet.y + app.pallet.size) > app.resolution[1] {
                 app.pallet.y = app.resolution[1] - app.pallet.size;
             }
+
+            if app.ball.target[0] > 0.0 && app.ball.target[0] < app.resolution[0] {
+                app.ball.target[0] = app.resolution[0];
+            } */
         }
     }
 }
