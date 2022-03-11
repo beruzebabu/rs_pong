@@ -100,6 +100,7 @@ impl App {
                 self.ball.x = self.resolution[0] / 2.0;
                 self.ball.y = self.resolution[1] / 2.0;
                 self.ball.target = [0.0, self.resolution[1] / 2.0];
+                self.pallet.y =  self.resolution[1] / 2.0;
             }
         }
     }
