@@ -54,7 +54,7 @@ impl App<'_> {
             rectangle(WHITE, pallet_rectangle, transform, gl);
             circle_arc(WHITE, self.ball.size, 0.0, 360.0, ball_circle, transform, gl);
 
-            let transform = c.transform.trans(self.resolution[0] - 96.0, self.resolution[1] - 36.0);
+            let transform = c.transform.trans(self.resolution[0] - 128.0, self.resolution[1] - 36.0);
 
             match text(WHITE, 24, &self.round.to_string(), &mut self.glyphs, transform, gl) {
                 Ok(_) => {},
@@ -96,13 +96,13 @@ impl App<'_> {
 
             match self.ball.direction() {
                 Direction::Left => {
-                    self.ball.x = self.ball.x - (self.ball.speed * self.resolution[0]) * args.dt;
+                    self.ball.x = self.ball.x - ((self.ball.speed + (1.0 + self.round as f64) / 100.0) * self.resolution[0]) * args.dt;
                     let sign = f64::signum(self.ball.y - self.ball.target[1]);
                     let distance = f64::abs(self.ball.y - self.ball.target[1]);
-                    self.ball.y = self.ball.y - (sign * (self.ball.speed * distance)) * args.dt;
+                    self.ball.y = self.ball.y - (sign * ((self.ball.speed + (1.0 + self.round as f64) / 100.0) * distance)) * args.dt;
                 }
                 Direction::Right => {
-                    self.ball.x = self.ball.x + (self.ball.speed * self.resolution[0]) * args.dt;
+                    self.ball.x = self.ball.x + ((self.ball.speed + (1.0 + self.round as f64) / 100.0) * self.resolution[0]) * args.dt;
                 }
             }
         }
@@ -124,7 +124,7 @@ fn main() {
     let mut keyboard_values: HashMap<Key, f64> = HashMap::new();
 
     // Create an Glutin window.
-    let mut window: Window = WindowSettings::new("rs-squash", [400, 400])
+    let mut window: Window = WindowSettings::new("rs-squash", [600, 600])
         .samples(2)
         .graphics_api(opengl)
         .exit_on_esc(true)
