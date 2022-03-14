@@ -28,6 +28,9 @@ pub struct App<'a> {
     started: bool,
     round: u64,
     glyphs: GlyphCache<'a>,
+    start_game_key: Key,
+    up_key: Key,
+    down_key: Key,
 }
 
 impl App<'_> {
@@ -44,21 +47,34 @@ impl App<'_> {
         let ball_circle = circle(self.ball.x, self.ball.y, self.ball.size);
 
         self.gl.draw(args.viewport(), |c, gl| {
-            // Clear the screen.
+            // clear the screen.
             clear(BLACK, gl);
 
-            //draw pallet and ball
+            // draw pallet and ball
             let transform = c
                 .transform;
 
-            rectangle(WHITE, pallet_rectangle, transform, gl);
-            circle_arc(WHITE, self.ball.size, 0.0, 360.0, ball_circle, transform, gl);
+            rectangle(self.pallet.color, pallet_rectangle, transform, gl);
+            circle_arc(self.ball.color, self.ball.size, 0.0, 360.0, ball_circle, transform, gl);
 
-            let transform = c.transform.trans(self.resolution[0] - 128.0, self.resolution[1] - 36.0);
+            // draw score text
+            let score_text = format!("SCORE:{}", self.round);
+            let transform = c.transform.trans(self.resolution[0] - ((score_text.len() + 3) as f64 * 24.0), self.resolution[1] - 24.0);
 
-            match text(WHITE, 24, &self.round.to_string(), &mut self.glyphs, transform, gl) {
+            match text(WHITE, 24, &score_text, &mut self.glyphs, transform, gl) {
                 Ok(_) => {},
                 Err(e) => println!("{}", e),
+            }
+
+            // draw start game text if not started
+            if !self.started {
+                let start_text = format!("PRESS {:?} TO START!", self.start_game_key);
+                let transform = c.transform.trans(self.resolution[0] / 2.0 - ((start_text.len() + 6) as f64 * 12.0) / 2.0, self.resolution[1] / 3.0);
+    
+                match text(WHITE, 12, &start_text, &mut self.glyphs, transform, gl) {
+                    Ok(_) => {},
+                    Err(e) => println!("{}", e),
+                }
             }
 
         });
@@ -66,14 +82,14 @@ impl App<'_> {
 
     fn update(&mut self, args: &UpdateArgs, keyboard_values: &HashMap<Key, f64>) {
         // Start game on spacebar press
-        if keyboard_values.contains_key(&Key::Space) && keyboard_values[&Key::Space] > 0.0 && self.started == false {
+        if keyboard_values.contains_key(&self.start_game_key) && keyboard_values[&self.start_game_key] > 0.0 && self.started == false {
             self.started = true;
         }
         // Update pallet movement
-        if keyboard_values.contains_key(&Key::S) && keyboard_values[&Key::S] > 0.0 && (self.pallet.y + self.pallet.size) < self.resolution[1] {
+        if keyboard_values.contains_key(&self.down_key) && keyboard_values[&self.down_key] > 0.0 && (self.pallet.y + self.pallet.size) < self.resolution[1] {
             self.pallet.y += self.pallet.speed * self.resolution[1] * args.dt;
         }
-        if keyboard_values.contains_key(&Key::W) && keyboard_values[&Key::W] > 0.0 && (self.pallet.y - self.pallet.size) > 0.0 {
+        if keyboard_values.contains_key(&self.up_key) && keyboard_values[&self.up_key] > 0.0 && (self.pallet.y - self.pallet.size) > 0.0 {
             self.pallet.y -= self.pallet.speed * self.resolution[1] * args.dt;
         }
 
@@ -123,7 +139,7 @@ fn main() {
     let opengl = OpenGL::V3_2;
     let mut keyboard_values: HashMap<Key, f64> = HashMap::new();
 
-    // Create an Glutin window.
+    // Create a Glutin window.
     let mut window: Window = WindowSettings::new("rs-squash", [600, 600])
         .samples(2)
         .graphics_api(opengl)
@@ -164,6 +180,9 @@ fn main() {
         scale_factor: window.ctx.window().scale_factor(),
         started: false,
         round: 0,
+        start_game_key: Key::Space,
+        up_key: Key::Up,
+        down_key: Key::Down,
     };
 
     let mut events = Events::new(EventSettings::new());
