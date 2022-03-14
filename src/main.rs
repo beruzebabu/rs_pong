@@ -31,6 +31,8 @@ pub struct App<'a> {
     start_game_key: Key,
     up_key: Key,
     down_key: Key,
+    speed_down_key: Key,
+    speed_up_key: Key,
 }
 
 impl App<'_> {
@@ -66,6 +68,15 @@ impl App<'_> {
                 Err(e) => println!("{}", e),
             }
 
+            // draw speed text
+            let speed_text = format!("SPEED:{:.2}", self.pallet.speed);
+            let transform = c.transform.trans(0.0 + 24.0, self.resolution[1] - 24.0);
+
+            match text(WHITE, 8, &speed_text, &mut self.glyphs, transform, gl) {
+                Ok(_) => {},
+                Err(e) => println!("{}", e),
+            }
+
             // draw start game text if not started
             if !self.started {
                 let start_text = format!("PRESS {:?} TO START!", self.start_game_key);
@@ -91,6 +102,14 @@ impl App<'_> {
         }
         if keyboard_values.contains_key(&self.up_key) && keyboard_values[&self.up_key] > 0.0 && (self.pallet.y - self.pallet.size) > 0.0 {
             self.pallet.y -= self.pallet.speed * self.resolution[1] * args.dt;
+        }
+
+        if keyboard_values.contains_key(&self.speed_down_key) && keyboard_values[&self.speed_down_key] > 0.0 && self.pallet.speed > 0.01 {
+            self.pallet.speed -= 0.01;
+        }
+
+        if keyboard_values.contains_key(&self.speed_up_key) && keyboard_values[&self.speed_up_key] > 0.0 {
+            self.pallet.speed += 0.01;
         }
 
         if self.started {
@@ -183,6 +202,8 @@ fn main() {
         start_game_key: Key::Space,
         up_key: Key::Up,
         down_key: Key::Down,
+        speed_down_key: Key::Left,
+        speed_up_key: Key::Right,
     };
 
     let mut events = Events::new(EventSettings::new());
