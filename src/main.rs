@@ -114,7 +114,8 @@ impl App<'_> {
 
         if self.started {
             if self.ball.bottom_bound() >= self.pallet.top_bound() && self.ball.top_bound() <= self.pallet.bottom_bound() && (self.pallet.x - self.pallet.size / 4.0) >= self.ball.x {
-                self.ball.target = [self.resolution[0], self.resolution[1] / 2.0];
+                let random_y = f64::round(thread_rng().gen_range(0.0..self.resolution[1]));
+                self.ball.target = [self.resolution[0], random_y];
             }
 
             //Bounce ball back off of opposite wall
@@ -138,6 +139,9 @@ impl App<'_> {
                 }
                 Direction::Right => {
                     self.ball.x = self.ball.x + ((self.ball.speed + (1.0 + self.round as f64) / 100.0) * self.resolution[0]) * args.dt;
+                    let sign = f64::signum(self.ball.y - self.ball.target[1]);
+                    let distance = f64::abs(self.ball.y - self.ball.target[1]);
+                    self.ball.y = self.ball.y - (sign * ((self.ball.speed + (1.0 + self.round as f64) / 100.0) * distance)) * args.dt;
                 }
             }
         }
