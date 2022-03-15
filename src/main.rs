@@ -113,14 +113,34 @@ impl App<'_> {
         }
 
         if self.started {
+            if self.ball.top_bound() <= 0.0 && self.ball.right_bound() < self.resolution[0] && self.ball.direction() == Direction::Right {
+                let random_y = f64::round(thread_rng().gen_range((self.resolution[1]/4.0)..self.resolution[1] - (self.resolution[1]/4.0)));
+                self.ball.target = [self.resolution[0], random_y];
+            }
+
+            if self.ball.top_bound() <= 0.0 && self.ball.left_bound() > 0.0 && self.ball.direction() == Direction::Left {
+                let random_y = f64::round(thread_rng().gen_range((self.resolution[1]/4.0)..self.resolution[1] - (self.resolution[1]/4.0)));
+                self.ball.target = [0.0, random_y];
+            }
+
+            if self.ball.bottom_bound() >= self.resolution[1] && self.ball.right_bound() < self.resolution[0] && self.ball.direction() == Direction::Right {
+                let random_y = f64::round(thread_rng().gen_range((self.resolution[1]/4.0)..self.resolution[1] - (self.resolution[1]/4.0)));
+                self.ball.target = [self.resolution[0], random_y];
+            }
+
+            if self.ball.bottom_bound() >= self.resolution[1] && self.ball.left_bound() > 0.0 && self.ball.direction() == Direction::Left {
+                let random_y = f64::round(thread_rng().gen_range((self.resolution[1]/4.0)..self.resolution[1] - (self.resolution[1]/4.0)));
+                self.ball.target = [0.0, random_y];
+            }
+
             if self.ball.bottom_bound() >= self.pallet.top_bound() && self.ball.top_bound() <= self.pallet.bottom_bound() && (self.pallet.x - self.pallet.size / 4.0) >= self.ball.x {
-                let random_y = f64::round(thread_rng().gen_range(0.0..self.resolution[1]));
+                let random_y = f64::round(thread_rng().gen_range(-(self.resolution[1]/4.0)..self.resolution[1]+(self.resolution[1]/4.0)));
                 self.ball.target = [self.resolution[0], random_y];
             }
 
             //Bounce ball back off of opposite wall
             if self.ball.right_bound() >= self.resolution[0] {
-                let random_y = f64::round(thread_rng().gen_range(0.0..self.resolution[1]));
+                let random_y = f64::round(thread_rng().gen_range(-(self.resolution[1]/4.0)..self.resolution[1]+(self.resolution[1]/4.0)));
                 self.ball.target = [0.0, random_y];
                 self.round = self.round + 1;
             }

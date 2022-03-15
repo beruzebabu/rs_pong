@@ -19,6 +19,7 @@ pub struct Ball {
     pub target: [f64; 2],
 }
 
+#[derive(Debug, PartialEq)]
 pub enum Direction {
     Left,
     Right,
