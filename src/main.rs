@@ -203,6 +203,7 @@ fn main() {
         .samples(2)
         .graphics_api(opengl)
         .exit_on_esc(true)
+        .vsync(false)
         .build()
         .unwrap();
 
@@ -246,7 +247,7 @@ fn main() {
         speed_up_key: Key::Right,
     };
 
-    let mut events = Events::new(EventSettings::new());
+    let mut events = Events::new(EventSettings::new().max_fps(200).ups(200));
     while let Some(e) = events.next(&mut window) {
         if let Some(args) = e.press_args() {
             match args {
