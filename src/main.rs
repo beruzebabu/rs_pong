@@ -283,14 +283,6 @@ fn main() {
             app.resolution[1] = args.window_size[1] * app.scale_factor;
 
             app.reset();
-
-            /* if (app.pallet.y + app.pallet.size) > app.resolution[1] {
-                app.pallet.y = app.resolution[1] - app.pallet.size;
-            }
-
-            if app.ball.target[0] > 0.0 && app.ball.target[0] < app.resolution[0] {
-                app.ball.target[0] = app.resolution[0];
-            } */
         }
     }
 }
