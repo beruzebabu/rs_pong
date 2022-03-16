@@ -61,9 +61,9 @@ impl App<'_> {
 
             // draw score text
             let score_text = format!("SCORE:{}", self.round);
-            let transform = c.transform.trans(self.resolution[0] - ((score_text.len() + 3) as f64 * 24.0), self.resolution[1] - 24.0);
+            let transform = c.transform.trans(self.resolution[0] - ((score_text.len() + 3) as f64 * 18.0), self.resolution[1] - 24.0);
 
-            match text(WHITE, 24, &score_text, &mut self.glyphs, transform, gl) {
+            match text(WHITE, 18, &score_text, &mut self.glyphs, transform, gl) {
                 Ok(_) => {},
                 Err(e) => println!("{}", e),
             }
@@ -77,12 +77,28 @@ impl App<'_> {
                 Err(e) => println!("{}", e),
             }
 
-            // draw start game text if not started
+            // draw start game and controls text if not started
             if !self.started {
-                let start_text = format!("PRESS {:?} TO START!", self.start_game_key);
+                let start_text = format!("PRESS <{:?}> TO START!", self.start_game_key);
                 let transform = c.transform.trans(self.resolution[0] / 2.0 - ((start_text.len() + 6) as f64 * 12.0) / 2.0, self.resolution[1] / 3.0);
     
                 match text(WHITE, 12, &start_text, &mut self.glyphs, transform, gl) {
+                    Ok(_) => {},
+                    Err(e) => println!("{}", e),
+                }
+
+                let controls_text = format!("PRESS <{:?}> TO MOVE UP, <{:?}> TO MOVE DOWN", self.up_key, self.down_key);
+                let transform = c.transform.trans((self.resolution[0] / 2.0) - ((start_text.len() + 30) as f64 * 6.0) / 2.0, self.resolution[1] / 1.5);
+    
+                match text(WHITE, 6, &controls_text, &mut self.glyphs, transform, gl) {
+                    Ok(_) => {},
+                    Err(e) => println!("{}", e),
+                }
+
+                let controls_text = format!("<{:?}> TO LOWER PALLET SPEED, <{:?}> TO INCREASE PALLET SPEED", self.speed_down_key, self.speed_up_key);
+                let transform = c.transform.trans((self.resolution[0] / 2.0) - ((start_text.len() + 58) as f64 * 6.0) / 2.0, self.resolution[1] / 1.4);
+    
+                match text(WHITE, 6, &controls_text, &mut self.glyphs, transform, gl) {
                     Ok(_) => {},
                     Err(e) => println!("{}", e),
                 }
